@@ -32,7 +32,7 @@ GreenLight.utils.events = {
         removeEvent: function removeEvent(obj, type, fn) {
             this.EventCache.remove(obj, type, fn);
         },
-
+        // EventCache by Mark Wuben. License: CC-GNU LGPL 2.1.
         EventCache: (function () {
 
             var listEvents = [];
