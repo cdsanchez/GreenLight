@@ -409,13 +409,11 @@ GreenLight.core.validator = function (GreenLight, undefined) {
             // Will set the current locale for messages.
             setLocale: function (locale) {
                 _settings.locale = locale;
-                return this;
             },
 
             // Sets the translations map to obj.
             setTranslations: function (obj) {
                 _i18n = obj;
-                return this;
             },
 
             setDefaultCallbacks: function (obj) {
