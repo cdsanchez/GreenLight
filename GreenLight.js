@@ -193,6 +193,12 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
             };
         },
 
+        matchesSelector: function (selector) {
+            return function (e) {
+                return GreenLight.selector.matchesSelector(e, selector);
+            };
+        },
+
         // Equals: Whether the element value equals the specified value. Try to use strings.
         equals: function (value) {
             return function (e) {
@@ -416,9 +422,31 @@ GreenLight.core.validator = function (GreenLight, undefined) {
                 _i18n = obj;
             },
 
+            // Sets the default callbacks for elements.
             setDefaultCallbacks: function (obj) {
                 _settings.defaultSuccess = obj.success;
                 _settings.defaultFail = obj.fail;
+            },
+
+            // Will return a list of names that match the selector and (optionally) that pass the given constraint.
+            // It will only return the names of elements that have been registered in the form validator.
+            querySelector: function (selector, constraint) {
+                var nameList = [];
+                var constraintFunc;
+                constraint && (constraintFunc = GreenLight.instance.toFunction(constraint));
+
+                var nodeList = GreenLight.selector.querySelectorAll(selector, _form);
+
+                for (var i = 0; i < nodeList.length; i++) {
+                    var name = nodeList[i].name;
+                    name in _elements &&
+                            (constraint ?
+                                constraintFunc(_form[name]) && nameList.push(name) :
+                                nameList.push(name)
+                            );
+                }
+
+                return nameList;
             },
 
             // If no arguments are provided, it will validate all elements. Otherwise, this function will
@@ -453,9 +481,17 @@ GreenLight.core.validator = function (GreenLight, undefined) {
 
             // Will validate all of the registered elements. Use the boolean flag to execute callbacks.
             // Provide the nameList option if you only wish to validate a subset of (registered) form elements.
+            // TODO: This is getting kind of big, consider splitting it up into multiple functions.
             validateMany: function (options) {
                 options = options || {};
-                var doCallback = defaultValue(options.doCallback, _settings.callbackOnMassValidate), massVal = [];
+                var doCallback = defaultValue(options.doCallback, _settings.callbackOnMassValidate);
+                var nameList = options.nameList, massVal = [];
+
+                // Add any elements that match the selector to nameList.
+                if (options.selector) {
+                    nameList = nameList || [];
+                    nameList = nameList.concat(this.querySelector(options.selector));
+                }
 
                 var pushValidation = function (name) {
                     if (options.onlyNonEmpty) {
@@ -465,13 +501,13 @@ GreenLight.core.validator = function (GreenLight, undefined) {
                     }
                 };
 
-                if (options.nameList === undefined) {
-                    for (var name in _elements) {
-                        pushValidation.call(this, name);
+                if (nameList) {
+                    for (var i = 0, length = nameList.length; i < length; i++) {
+                        pushValidation.call(this, nameList[i]);
                     }
                 } else {
-                    for (var i = 0, length = options.nameList.length; i < length; i++) {
-                        pushValidation.call(this, options.nameList[i]);
+                    for (var name in _elements) {
+                        pushValidation.call(this, name);
                     }
                 };
 
