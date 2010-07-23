@@ -193,6 +193,7 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
             };
         },
 
+        // Matches Selector: Whether the element matches the provided CSS selector.
         matchesSelector: function (selector) {
             return function (e) {
                 return GreenLight.selector.matchesSelector(e, selector);
@@ -300,7 +301,7 @@ GreenLight.core.validator = function (GreenLight, undefined) {
 
             if (GreenLight.instance.isReady()) _getFormNode();
             else GreenLight.utils.events.addEvent(window, "load", _getFormNode);
-            if (_settings.attachOnLoad) GreenLight.utils.events.addEvent(window, "load", function() { setTimeout(my.attach, 100); });
+            if (_settings.attachOnLoad) GreenLight.utils.events.addEvent(window, "load", function () { setTimeout(my.attach, 100); });
         };
 
         // If option is undefined, return defaultVal, otherwise return option.
@@ -460,6 +461,7 @@ GreenLight.core.validator = function (GreenLight, undefined) {
                 // Context will be bound to 'this' in the success/fail callback.
                 var context = {
                     name: name,
+                    success: success,
                     element: _form[name],
                     errorMessage: _elements[name].errorMessage || _i18n[_settings.locale][name]
                 }
@@ -500,11 +502,14 @@ GreenLight.core.validator = function (GreenLight, undefined) {
                     }
                 };
 
+                // Validate those only in nameList
                 if (nameList) {
+
                     for (var i = 0, length = nameList.length; i < length; i++) {
                         pushValidation.call(this, nameList[i]);
                     }
-                } else {
+                // validate all elements
+                } else { // validate all elements
                     for (var name in _elements) {
                         pushValidation.call(this, name);
                     }
