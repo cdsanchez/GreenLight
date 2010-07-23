@@ -142,7 +142,7 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
         toFunction: _toFunc,
 
         // We can use this to selectively export modules.
-        utils: { results: GreenLight.utils.results, events: GreenLight.utils.events },
+        utils: { results: GreenLight.utils.results },
 
         /* The following functions serve as predicates that can be used when building rules or constraints.
         ** All of the "logical" (and, or, xor, implies) predicates are variadic, with the exception of not.

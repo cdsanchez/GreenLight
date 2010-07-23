@@ -2,7 +2,7 @@ var GreenLight = GreenLight || {};
 
 GreenLight.selector = GreenLight.selector || {
     querySelectorAll: function (selector, node) {
-        //if (node.querySelectorAll) return node.querySelectorAll(selector);
+        if (node.querySelectorAll) return node.querySelectorAll(selector);
         if (jQuery) return jQuery(selector, node);
         if (YAHOO.util.Selector) return YAHOO.util.Selector.query(selector, node);
         if (Element) return Element.getElementsBySelector(selector, node);
