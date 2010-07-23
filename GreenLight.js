@@ -142,7 +142,7 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
         toFunction: _toFunc,
 
         // We can use this to selectively export modules.
-        utils: { results: GreenLight.utils.results },
+        utils: { results: GreenLight.utils.results, events: GreenLight.utils.events },
 
         /* The following functions serve as predicates that can be used when building rules or constraints.
         ** All of the "logical" (and, or, xor, implies) predicates are variadic, with the exception of not.
@@ -300,7 +300,7 @@ GreenLight.core.validator = function (GreenLight, undefined) {
 
             if (GreenLight.instance.isReady()) _getFormNode();
             else GreenLight.utils.events.addEvent(window, "load", _getFormNode);
-            if (_settings.attachOnLoad) GreenLight.utils.events.addEvent(window, "load", my.attach);
+            if (_settings.attachOnLoad) GreenLight.utils.events.addEvent(window, "load", function() { setTimeout(my.attach, 100); });
         };
 
         // If option is undefined, return defaultVal, otherwise return option.
@@ -325,7 +325,6 @@ GreenLight.core.validator = function (GreenLight, undefined) {
         // This will attempt to add our handler to the submit function. If we can't, we wait until the window is loaded.
         var _attachEventHandlers = function () {
             if (GreenLight.instance.isReady() && !_EVENTS_ATTACHED) {
-
                 GreenLight.utils.events.addEvent(_form, "submit", _defaultSubmitHandler);
 
                 for (var element in _elements) {

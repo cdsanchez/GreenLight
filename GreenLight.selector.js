@@ -2,7 +2,7 @@ var GreenLight = GreenLight || {};
 
 GreenLight.selector = GreenLight.selector || {
     querySelectorAll: function (selector, node) {
-        if (node.querySelectorAll) return node.querySelectorAll(selector);
+        //if (node.querySelectorAll) return node.querySelectorAll(selector);
         if (jQuery) return jQuery(selector, node);
         if (YAHOO.util.Selector) return YAHOO.util.Selector.query(selector, node);
         if (Element) return Element.getElementsBySelector(selector, node);
@@ -14,7 +14,7 @@ GreenLight.selector = GreenLight.selector || {
 
     matchesSelector: function (node, selector) {
         // Check for native implementations.
-        var matchesSelector = document.matchesSelector || document.mozMatchesSelector || document.webkitMatchesSelector;
+        var matchesSelector = node.matchesSelector || node.mozMatchesSelector || node.webkitMatchesSelector;
 
         if (matchesSelector) {
             return matchesSelector.call(node, selector);
@@ -27,7 +27,7 @@ GreenLight.selector = GreenLight.selector || {
         if (Ext.DOMQuery.is) return Ext.DOMQuery.is(node, selector); // ExtJS
 
         // Our naive implementation.
-        var nodeList = this.querySelectorAll(document, selector);
+        var nodeList = this.querySelectorAll(node.parentNode, selector);
         for (var element in nodeList) {
             return nodeList[element] === node;
         }
