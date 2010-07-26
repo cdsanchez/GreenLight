@@ -13,6 +13,27 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
     */
     var _rules = {}, _WINDOW_LOADED = false;
 
+    // I try to keep anything that is not a declaration in here. The place to add more default rules.
+    var _init = function () {
+        _addRules([
+                ['alpha', /^[a-zA-Z]*$/],
+                ['alphanumeric', /^[a-zA-Z0-9_]*$/],
+                ['email', /^([^@\s]+)@((?:[-a-z0-9]+\.)+[a-z]{2,})$/i],
+                ['checked', function (e) { return e.checked; } ],
+                ['empty', function (e) { return e.value === ""; } ],
+                ['required', function (e) { return e.value !== ""; } ]
+            ]);
+
+        // Attach an event to the window load event to let us know once the window and its components
+        // have loaded.
+        GreenLight.utils.events.addEvent(window, "load", function () {
+            _WINDOW_LOADED = true;
+        });
+
+        // Flush all events on window unload to avoid a memory leak in IE.
+        GreenLight.utils.events.addEvent(window, "unload", GreenLight.utils.events.EventCache.flush);
+    };
+
     // Convert regular expression to a function equivalent of calling the test method on an element's value.
     var _regexToFunction = function (regex) {
         var regexp = regex || /^.*$/;
@@ -36,7 +57,6 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
         }
 
         throw ("Constraint '" + x + "' type not supported.");
-        return null;
     };
 
     // Simplifies a sequence of functions into a single functions, from left to right. Joined using AND.
@@ -106,26 +126,8 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
         }
     };
 
-    // I try to keep anything that is not a declaration in here. The place to add more default rules.
-    (function init() {
-        _addRules([
-                ['alpha', /^[a-zA-Z]*$/],
-                ['alphanumeric', /^[a-zA-Z0-9_]*$/],
-                ['email', /^([^@\s]+)@((?:[-a-z0-9]+\.)+[a-z]{2,})$/i],
-                ['checked', function (e) { return e.checked; } ],
-                ['empty', function (e) { return e.value === ""; } ],
-                ['required', function (e) { return e.value !== ""; } ]
-            ]);
-
-        // Attach an event to the window load event to let us know once the window and its components
-        // have loaded.
-        GreenLight.utils.events.addEvent(window, "load", function () {
-            _WINDOW_LOADED = true;
-        });
-
-        // Flush all events on window unload to avoid a memory leak in IE.
-        GreenLight.utils.events.addEvent(window, "unload", GreenLight.utils.events.EventCache.flush);
-    })();
+    
+    _init();
 
     return {
 
@@ -273,9 +275,9 @@ GreenLight.core.validator = function (GreenLight, undefined) {
         // i18n: An object that stores translations to add internationalization support.
         // _elements: An object that stores element specific settings. 
         var _form = {}, _elements = {}, _i18n = {}, _settings = {};
-        var _EVENTS_ATTACHED = false, _ATTACH_CALLED = false;
+        var _EVENTS_ATTACHED = false, _ATTACH_CALLED = false, init;
 
-        var init = function () {
+        init = function () {
             _settings = _merge(initSettings || {}, {
                 attachOnLoad: true,
                 callbackOnMassValidate: true,
@@ -284,7 +286,7 @@ GreenLight.core.validator = function (GreenLight, undefined) {
                 validateOnEventType: "change",
                 defaultSuccess: undefined,
                 defaultFail: undefined,
-                locale: "en",
+                locale: "default",
                 onSuccess: function () { return true; },
                 onFail: function (event) {
                     if (event.stopPropagation) {
@@ -346,22 +348,16 @@ GreenLight.core.validator = function (GreenLight, undefined) {
         // the attach function.
         var _attachElementHandler = function (name) {
             var READY = GreenLight.instance.isReady();
-            if (_ATTACH_CALLED && READY) {
-                _addInputEventHandler(name);
-            }
+            _ATTACH_CALLED && READY && _addInputEventHandler(name);
         };
 
         // The default form submit handler. It will call the element's onSuccess callback if it passed, and onFail otherwise.
         // An array of results will be provided through this.results inside the callbacks.
         var _defaultSubmitHandler = function (event) {
-            var massVal = my.validate();
-            var success = GreenLight.utils.results.success(massVal);
+            var massVal = my.validate(), fn;
+            fn = GreenLight.utils.results.success(massVal) ? _settings.onSuccess : _settings.onFail;
 
-            if (!success) {
-                return _settings.onFail.call({ results: massVal }, event);
-            }
-
-            return _settings.onSuccess.call({ results: massVal }, event);
+            return fn.call({ results: massVal }, event);
         };
 
         // The default event handler for specific elements. It will validate the element according to the specified constraint.
@@ -391,6 +387,11 @@ GreenLight.core.validator = function (GreenLight, undefined) {
                 _attachEventHandlers();
             },
 
+            // Used to register multiple inputs at once to avoid multiple calls to registerInput.
+            register: function (inputs) {
+                for (var name in inputs) this.registerInput(name, inputs[name])
+            },
+
             // Will add a form element to this object's validation list.
             registerInput: function (name, settings) {
                 if (name === undefined || typeof name !== "string") return this;
@@ -398,13 +399,16 @@ GreenLight.core.validator = function (GreenLight, undefined) {
                 _elements[name] = _merge(settings, {
                     name: name,
                     getForm: function () { return _form; },
-                    errorMessage: undefined,
                     constraint: function () { return true; },
                     validateOnEvent: undefined,
                     validateOnEventType: "change",
                     onSuccess: undefined,
                     onFail: undefined
                 });
+
+                // If there isn't an object for the current local in the i18n table, create one.
+                if (!_i18n[_settings.locale]) _i18n[_settings.locale] = {};
+                _i18n[_settings.locale][name] = settings.errorMessage;
 
                 _elements[name].constraint = GreenLight.instance.toFunction(settings.constraint);
 
@@ -419,7 +423,12 @@ GreenLight.core.validator = function (GreenLight, undefined) {
 
             // Sets the translations map to obj.
             setTranslations: function (obj) {
-                _i18n = obj;
+                for (var locale in obj) {
+                    if (!(locale in _i18n)) _i18n[locale] = {};
+                    for (var name in obj[locale]) {
+                        _i18n[locale][name] = obj[locale][name];
+                    }
+                }
             },
 
             // Sets the default callbacks for elements.
@@ -431,11 +440,10 @@ GreenLight.core.validator = function (GreenLight, undefined) {
             // Will return a list of names that match the selector and (optionally) that pass the given constraint.
             // It will only return the names of elements that have been registered in the form validator.
             querySelector: function (selector, constraint) {
-                var nameList = [];
-                var constraintFunc;
+                var nameList = [], nodeList, constraintFunc;
                 constraint && (constraintFunc = GreenLight.instance.toFunction(constraint));
 
-                var nodeList = GreenLight.selector.querySelectorAll(selector, _form);
+                nodeList = GreenLight.selector.querySelectorAll(selector, _form);
 
                 for (var i = 0; i < nodeList.length; i++) {
                     var name = nodeList[i].name;
@@ -458,12 +466,12 @@ GreenLight.core.validator = function (GreenLight, undefined) {
 
                 var success = _elements[name].constraint(_form[name]);
 
-                // Context will be bound to 'this' in the success/fail callback.
+                // context will be bound to 'this' in the success/fail callback.
                 var context = {
                     name: name,
                     success: success,
                     element: _form[name],
-                    errorMessage: _elements[name].errorMessage || _i18n[_settings.locale][name]
+                    errorMessage: _i18n[_settings.locale][name]
                 }
 
                 if (execCallback) {
@@ -494,7 +502,7 @@ GreenLight.core.validator = function (GreenLight, undefined) {
                     nameList = nameList.concat(this.querySelector(options.selector));
                 }
 
-                var pushValidation = function (name) {
+                var pushResult = function (name) {
                     if (options.onlyNonEmpty) {
                         if (_form[name].value !== "") massVal.push(this.validate(name, doCallback));
                     } else {
@@ -504,14 +512,13 @@ GreenLight.core.validator = function (GreenLight, undefined) {
 
                 // Validate those only in nameList
                 if (nameList) {
-
                     for (var i = 0, length = nameList.length; i < length; i++) {
-                        pushValidation.call(this, nameList[i]);
+                        pushResult.call(this, nameList[i]);
                     }
-                // validate all elements
-                } else { // validate all elements
+                    // validate all elements
+                } else {
                     for (var name in _elements) {
-                        pushValidation.call(this, name);
+                        pushResult.call(this, name);
                     }
                 };
 
@@ -524,7 +531,7 @@ GreenLight.core.validator = function (GreenLight, undefined) {
     };
 };
 
-// Replace the GreenLight object with the instance.
 GreenLight.instance = GreenLight.core.__init__(GreenLight);
 GreenLight.instance.create = GreenLight.core.validator(GreenLight);
+// Replace the GreenLight object with the instance.
 GreenLight = GreenLight.instance;
