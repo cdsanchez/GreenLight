@@ -274,7 +274,7 @@ GreenLight.core.validator = function (GreenLight, undefined) {
         // _form: Is (or will be) a reference to the actual DOM node for the from we're working on.
         // i18n: An object that stores translations to add internationalization support.
         // _elements: An object that stores element specific settings. 
-        var _form = {}, _elements = {}, _i18n = {}, _settings = {};
+        var _form = {}, _elements = {}, _i18n = {}, _settings = {}, _default_locale = "default";
         var _EVENTS_ATTACHED = false, _ATTACH_CALLED = false, init;
 
         init = function () {
@@ -286,7 +286,7 @@ GreenLight.core.validator = function (GreenLight, undefined) {
                 validateOnEventType: "change",
                 defaultSuccess: undefined,
                 defaultFail: undefined,
-                locale: "default",
+                locale: _default_locale,
                 onSuccess: function () { return true; },
                 onFail: function (event) {
                     if (event.stopPropagation) {
@@ -408,7 +408,7 @@ GreenLight.core.validator = function (GreenLight, undefined) {
 
                 // If there isn't an object for the current local in the i18n table, create one.
                 if (!_i18n[_settings.locale]) _i18n[_settings.locale] = {};
-                _i18n[_settings.locale][name] = settings.errorMessage;
+                _i18n[_default_locale][name] = settings.errorMessage;
 
                 _elements[name].constraint = GreenLight.instance.toFunction(settings.constraint);
 
