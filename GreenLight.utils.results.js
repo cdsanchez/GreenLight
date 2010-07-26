@@ -14,7 +14,7 @@ GreenLight.utils.results = {
     iter: function (results, fn) {
         if (results === undefined) return;
         for (var i = 0, length = results.length; i < length; i++) {
-            fn.call(null, result[i]);
+            fn(result[i]);
         }
     },
 

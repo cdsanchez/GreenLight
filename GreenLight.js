@@ -213,7 +213,7 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
         lessThan: function (value) {
             if (typeof value !== "number") throw ("Argument must be a Number.");
             return function (e) {
-                var eVal = parseInt(e.value, 10);
+                var eVal = parseFloat(e.value, 10);
                 return eVal < value;
             };
         },
@@ -222,7 +222,7 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
         greaterThan: function (value) {
             if (typeof value !== "number") throw ("Argument must be a Number.");
             return function (e) {
-                var eVal = parseInt(e.value, 10);
+                var eVal = parseFloat(e.value, 10);
                 return eVal > value;
             };
         },
