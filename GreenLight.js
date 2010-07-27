@@ -494,31 +494,22 @@ GreenLight.core.validator = function (GreenLight, undefined) {
             validateMany: function (options) {
                 options = options || {};
                 var doCallback = defaultValue(options.doCallback, _settings.callbackOnMassValidate);
-                var nameList = options.nameList, massVal = [];
+                var nameList = [], massVal = [];
 
                 // Add any elements that match the selector to nameList.
                 if (options.selector) {
-                    nameList = nameList || [];
-                    nameList = nameList.concat(this.querySelector(options.selector));
+                    nameList = nameList.concat(this.querySelector(options.selector, options.constraint));
                 }
-
-                var pushResult = function (name) {
-                    if (options.onlyNonEmpty) {
-                        if (_form[name].value !== "") massVal.push(this.validate(name, doCallback));
-                    } else {
-                        massVal.push(this.validate(name, doCallback));
-                    }
-                };
 
                 // Validate those only in nameList
                 if (nameList) {
                     for (var i = 0, length = nameList.length; i < length; i++) {
-                        pushResult.call(this, nameList[i]);
+                        massVal.push(this.validate(nameList[i], doCallback));
                     }
                     // validate all elements
                 } else {
                     for (var name in _elements) {
-                        pushResult.call(this, name);
+                        massVal.push(this.validate(name, doCallback));
                     }
                 };
 
