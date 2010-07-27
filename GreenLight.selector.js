@@ -4,9 +4,9 @@ GreenLight.selector = GreenLight.selector || {
     querySelectorAll: function (selector, node) {
         if (node.querySelectorAll) return node.querySelectorAll(selector);
         if (jQuery) return jQuery(selector, node);
-        if (YAHOO.util.Selector) return YAHOO.util.Selector.query(selector, node);
-        if (Element) return Element.getElementsBySelector(selector, node);
-        if (Ext.DOMQuery) return Ext.DOMQuery.select(selector, node);
+        if (YAHOO) return YAHOO.util.Selector.query(selector, node);
+        if (Element) return Element.select(node, selector);
+        if (Ext) return Ext.DOMQuery.select(selector, node);
 
         // Return empty list if there is no implementation we can use.
         return [];
@@ -20,11 +20,11 @@ GreenLight.selector = GreenLight.selector || {
             return matchesSelector.call(node, selector);
         }
 
-        // Check for framework implementations
+        //Check for framework implementations
         if (jQuery) return jQuery(node).is(selector); // jQuery
-        if (YAHOO.util.Selector) return YAHOO.util.Selector.test(node, selector); // YAHOO
+        if (YAHOO) return YAHOO.util.Selector.test(node, selector); // YAHOO
         if (Element) return Element.match(node, selector); // Prototype
-        if (Ext.DOMQuery.is) return Ext.DOMQuery.is(node, selector); // ExtJS
+        if (Ext) return Ext.DOMQuery.is(node, selector); // ExtJS
 
         // Our naive implementation.
         var nodeList = this.querySelectorAll(node.parentNode, selector);
