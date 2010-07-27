@@ -301,6 +301,9 @@ GreenLight.core.validator = function (GreenLight, undefined) {
                 }
             });
 
+            _i18n[_default_locale] = {};
+            _i18n[_settings.locale] = {};
+
             if (GreenLight.instance.isReady()) _getFormNode();
             else GreenLight.utils.events.addEvent(window, "load", _getFormNode);
             if (_settings.attachOnLoad) GreenLight.utils.events.addEvent(window, "load", function () { setTimeout(my.attach, 100); });
@@ -406,14 +409,11 @@ GreenLight.core.validator = function (GreenLight, undefined) {
                     onFail: undefined
                 });
 
-                // If there isn't an object for the current local in the i18n table, create one.
-                if (!_i18n[_settings.locale]) _i18n[_settings.locale] = {};
                 _i18n[_default_locale][name] = settings.errorMessage;
 
                 _elements[name].constraint = GreenLight.instance.toFunction(settings.constraint);
 
                 _attachElementHandler(name);
-                return this;
             },
 
             // Will set the current locale for messages.
@@ -494,26 +494,28 @@ GreenLight.core.validator = function (GreenLight, undefined) {
             validateMany: function (options) {
                 options = options || {};
                 var doCallback = defaultValue(options.doCallback, _settings.callbackOnMassValidate);
-                var nameList = [], massVal = [];
+                var nameList, results = [];
 
                 // Add any elements that match the selector to nameList.
                 if (options.selector) {
-                    nameList = nameList.concat(this.querySelector(options.selector, options.constraint));
+                    nameList = this.querySelector(options.selector, options.constraint);
+                } else if (!options.selector && options.constraint) {
+                    nameList = this.querySelector("input", options.constraint);
                 }
 
                 // Validate those only in nameList
                 if (nameList) {
                     for (var i = 0, length = nameList.length; i < length; i++) {
-                        massVal.push(this.validate(nameList[i], doCallback));
+                        results.push(this.validate(nameList[i], doCallback));
                     }
                     // validate all elements
                 } else {
                     for (var name in _elements) {
-                        massVal.push(this.validate(name, doCallback));
+                        results.push(this.validate(name, doCallback));
                     }
                 };
 
-                return massVal;
+                return results;
             }
         }
 
