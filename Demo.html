@@ -1,0 +1,100 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Quick GreenLight Demo</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+    <script type="text/javascript" src="GreenLight.selector.js"></script>
+    <script type="text/javascript" src="GreenLight.utils.events.js"></script>
+    <script type="text/javascript" src="GreenLight.utils.results.js"></script>
+    <script type="text/javascript" src="GreenLight.js"></script>
+    <script type="text/javascript">
+        var formValidator = GreenLight.create("theform", { validateOnEventType: "keyup" });
+
+        formValidator.register({
+            "username": {
+                constraint: ["alphanumeric", "required"],
+                errorMessage: "Must be a valid username with only alphanumeric characters."
+            },
+            "email": {
+                constraint: ["email", "required"],
+                errorMessage: "Must be a valid email."
+            },
+            "email-confirm": {
+                constraint: [GreenLight.matches("email"), "required"],
+                errorMessage: "Must match the original email."
+            },
+            "password": {
+                constraint: [GreenLight.length(6), "required"],
+                errorMessage: "Your password must be at least 6 characters."
+            },
+            "password-confirm": {
+                constraint: [GreenLight.matches("password"), "required"],
+                errorMessage: "Must match your original password."
+            },
+            "age": {
+                constraint: [GreenLight.greaterThan(17), "required"],
+                errorMessage: "You must be 18 years or older to register."
+            },
+            "checkbox": {
+                constraint: "checked",
+                errorMessage: "You must accept the terms of service.",
+                validateOnEventType: "change"
+            }
+        });
+
+        formValidator.setDefaultCallbacks({
+            success: function (element) {
+                $("label.error[for='" + element.name + "']").text("");
+                $(element).css("borderColor", "green");
+            },
+            fail: function (element) {
+                $("label.error[for='" + element.name + "']").text(this.errorMessage);
+                $(element).css("borderColor", "red");
+            }
+        });
+
+        $(function () {
+        // add error labels after each input
+            $("#theform input").each(function () {
+                $(this).after(function () {
+                    return '<label class="error" for=' + this.name + '></label>';
+                });
+            });
+        });
+    </script>
+</head>
+<body>
+    <form id="theform" action="">
+    <label for="username">
+        Username</label>
+    <input name="username" />
+    <br />
+    <label for="email">
+        Email</label>
+    <input name="email" />
+    <br />
+    <label for="email-confirm">
+        Confirm Email</label>
+    <input name="email-confirm" />
+    <br />
+    <label for="password">
+        Password:</label>
+    <input name="password" type="password" />
+    <br />
+    <label for="password-confirm">
+        Confirm password:</label>
+    <input name="password-confirm" type="password" />
+    <br />
+    <label for="age">
+        Age:</label>
+    <input name="age" />
+    <br />
+    <label for="checkbox">
+        Do you agree to the terms of service?</label>
+    <input name="checkbox" type="checkbox" />
+    <br />
+    <input type="submit" />
+    </form>
+</body>
+</html>

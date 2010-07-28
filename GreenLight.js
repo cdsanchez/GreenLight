@@ -29,9 +29,6 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
         GreenLight.utils.events.addEvent(window, "load", function () {
             _WINDOW_LOADED = true;
         });
-
-        // Flush all events on window unload to avoid a memory leak in IE.
-        GreenLight.utils.events.addEvent(window, "unload", GreenLight.utils.events.EventCache.flush);
     };
 
     // Convert regular expression to a function equivalent of calling the test method on an element's value.
@@ -126,7 +123,7 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
         }
     };
 
-    
+
     _init();
 
     return {
@@ -143,8 +140,11 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
         // Converts a rule to a function.
         toFunction: _toFunc,
 
-        // We can use this to selectively export modules.
-        utils: { results: GreenLight.utils.results },
+        // EXPOSE MODULES UNDER 'MODULE' NAMESPACE:
+        modules: {
+            utils: { results: GreenLight.utils.results, events: GreenLight.utils.events },
+            selector: GreenLight.selector
+        },
 
         /* The following functions serve as predicates that can be used when building rules or constraints.
         ** All of the "logical" (and, or, xor, implies) predicates are variadic, with the exception of not.
@@ -366,7 +366,7 @@ GreenLight.core.validator = function (GreenLight, undefined) {
         // The default event handler for specific elements. It will validate the element according to the specified constraint.
         var _defaultElementHandler = function (element) {
             return function () {
-                if (defaultValue(_elements[element].validateOnEvent, _settings.validateOnEvent)) {
+                if (_elements[element].validateOnEvent) {
                     my.validate(element);
                 }
             }
@@ -375,9 +375,9 @@ GreenLight.core.validator = function (GreenLight, undefined) {
 
         // Adds the event handler for a specific element.
         var _addInputEventHandler = function (element) {
-            if (defaultValue(_elements[element].validateOnEvent, _settings.validateOnEvent)) {
+            if (_elements[element].validateOnEvent) {
                 // If the element specific event type isn't defined, we use the event type found in the global settings.
-                var eventType = defaultValue(_elements[element].validateOnEventType, _settings.validateOnEventType);
+                var eventType = _elements[element].validateOnEventType;
                 GreenLight.utils.events.addEvent(_form[element], eventType, _defaultElementHandler(element));
             }
         };
@@ -403,8 +403,8 @@ GreenLight.core.validator = function (GreenLight, undefined) {
                     name: name,
                     getForm: function () { return _form; },
                     constraint: function () { return true; },
-                    validateOnEvent: undefined,
-                    validateOnEventType: "change",
+                    validateOnEvent: _settings.validateOnEvent,
+                    validateOnEventType: _settings.validateOnEventType,
                     onSuccess: undefined,
                     onFail: undefined
                 });
@@ -449,7 +449,8 @@ GreenLight.core.validator = function (GreenLight, undefined) {
                     var name = nodeList[i].name;
                     name in _elements &&
                             (constraint ?
-                                constraintFunc(_form[name]) && nameList.push(name) :
+                                constraintFunc(_form[name]) &&
+                                    nameList.push(name) :
                                 nameList.push(name)
                             );
                 }
@@ -462,7 +463,6 @@ GreenLight.core.validator = function (GreenLight, undefined) {
             validate: function (name, execCallback) {
                 if (arguments.length === 0) return this.validateMany();
                 if (!(name in _elements)) throw ("Form field '" + name + "' not registered.");
-                if (execCallback === undefined) execCallback = _settings.callbackOnValidate;
 
                 var success = _elements[name].constraint(_form[name]);
 
@@ -471,10 +471,10 @@ GreenLight.core.validator = function (GreenLight, undefined) {
                     name: name,
                     success: success,
                     element: _form[name],
-                    errorMessage: _i18n[_settings.locale][name]
+                    errorMessage: _i18n[_settings.locale][name] || _i18n[_default_locale][name]
                 }
 
-                if (execCallback) {
+                if (defaultValue(execCallback, _settings.callbackOnValidate)) {
                     var callback;
                     if (success) {
                         callback = _elements[name].onSuccess || _settings.defaultSuccess;

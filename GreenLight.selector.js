@@ -7,6 +7,9 @@ GreenLight.selector = GreenLight.selector || {
         if (YAHOO) return YAHOO.util.Selector.query(selector, node);
         if (Element) return Element.select(node, selector);
         if (Ext) return Ext.DOMQuery.select(selector, node);
+        if (dojo) return dojo.query(selector); //dojo doesn't let you specify the root node
+        if (Peppy) return Peppy.query(selector, node);
+        if (Sizzle) return Sizzle(selector, node);
 
         // Return empty list if there is no implementation we can use.
         return [];
