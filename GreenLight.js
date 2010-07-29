@@ -288,17 +288,7 @@ GreenLight.core.validator = function (GreenLight, undefined) {
                 defaultFail: undefined,
                 locale: _default_locale,
                 onSuccess: function () { return true; },
-                onFail: function (event) {
-                    if (event.stopPropagation) {
-                        event.stopPropagation();
-                        event.preventDefault();
-                    } else {
-                        event.returnValue = false;
-                        event.cancelBubble = true;
-                    }
-
-                    return false;
-                }
+                onFail: function () { return false; }
             });
 
             _i18n[_default_locale] = {};
@@ -357,10 +347,20 @@ GreenLight.core.validator = function (GreenLight, undefined) {
         // The default form submit handler. It will call the element's onSuccess callback if it passed, and onFail otherwise.
         // An array of results will be provided through this.results inside the callbacks.
         var _defaultSubmitHandler = function (event) {
-            var massVal = my.validate(), fn;
-            fn = GreenLight.utils.results.success(massVal) ? _settings.onSuccess : _settings.onFail;
+            var results = my.validate(), fn;
+            fn = GreenLight.utils.results.success(results) ? _settings.onSuccess : _settings.onFail;
 
-            return fn.call({ results: massVal }, event);
+            var doSubmit = fn.call({ results: results }, event);
+
+            if (!doSubmit) {
+                if (event.stopPropagation) {
+                    event.stopPropagation();
+                    event.preventDefault();
+                } else {
+                    event.returnValue = false;
+                    event.cancelBubble = true;
+                }
+            }
         };
 
         // The default event handler for specific elements. It will validate the element according to the specified constraint.

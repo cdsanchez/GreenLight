@@ -11,21 +11,13 @@ GreenLight.utils.results = {
         return flag;
     },
 
-    iter: function (results, fn) {
-        if (results === undefined) return;
-        for (var i = 0, length = results.length; i < length; i++) {
-            fn(result[i]);
-        }
-    },
-
     errorList: function (results) {
         var errorList = [];
-        this.iter(results, function (result) {
-            var errorMessage = result.errorMessage;
-            if (errorMessage) {
-                errorList.push(result.errorMessage);
+        for (var i = 0, length = results.length; i < length; i++) {
+            if (!results[i].success) {
+                errorList.push(results[i].errorMessage);
             }
-        });
+        }
         return errorList;
     }
 };
