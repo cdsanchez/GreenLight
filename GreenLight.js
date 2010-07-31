@@ -141,10 +141,7 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
         toFunction: _toFunc,
 
         // EXPOSE MODULES UNDER 'MODULE' NAMESPACE:
-        modules: {
-            utils: { results: GreenLight.utils.results, events: GreenLight.utils.events },
-            selector: GreenLight.selector
-        },
+        modules: GreenLight,
 
         /* The following functions serve as predicates that can be used when building rules or constraints.
         ** All of the "logical" (and, or, xor, implies) predicates are variadic, with the exception of not.
@@ -361,6 +358,8 @@ GreenLight.core.validator = function (GreenLight, undefined) {
                     event.cancelBubble = true;
                 }
             }
+
+            return doSubmit;
         };
 
         // The default event handler for specific elements. It will validate the element according to the specified constraint.
@@ -377,8 +376,11 @@ GreenLight.core.validator = function (GreenLight, undefined) {
         var _addInputEventHandler = function (element) {
             if (_elements[element].validateOnEvent) {
                 // If the element specific event type isn't defined, we use the event type found in the global settings.
-                var eventType = _elements[element].validateOnEventType;
-                GreenLight.utils.events.addEvent(_form[element], eventType, _defaultElementHandler(element));
+                var eventTypes = _elements[element].validateOnEventType;
+                if (typeof eventTypes == "string") eventTypes = [eventTypes]; // if it's a single event put it inside an array
+                for (var i = 0; i < eventTypes.length; i++) {
+                    GreenLight.utils.events.addEvent(_form[element], eventTypes[i], _defaultElementHandler(element));
+                }
             }
         };
 
