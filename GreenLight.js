@@ -21,7 +21,7 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
                 ['email', /^([^@\s]+)@((?:[-a-z0-9]+\.)+[a-z]{2,})$/i],
                 ['checked', function (e) { return e.checked; } ],
                 ['empty', function (e) { return e.value === ""; } ],
-                ['required', function (e) { return e.value !== ""; } ]
+                ['required', function (e) { return e.value !== "" || e.checked == true; } ]
             ]);
 
         // Attach an event to the window load event to let us know once the window and its components
@@ -47,13 +47,13 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
 
         if (typeof x === "string") {
             var rule = _rules[x];
-            if (rule === undefined) {
-                throw ("Constraint '" + x + "' not found.")
+            if (!rule) {
+                throw "Constraint '" + x + "' not found.";
             }
             return rule.constraint;
         }
 
-        throw ("Constraint '" + x + "' type not supported.");
+        return;
     };
 
     // Simplifies a sequence of functions into a single functions, from left to right. Joined using AND.
@@ -84,18 +84,14 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
         });
     }
 
-    // Checks if it is not a sequence (arrays or array-like objects). 
-    // TODO: Redo to check if it *is* a sequence.
-    var _notSequence = function (sequence) {
-        return sequence.length === undefined ||
-               sequence instanceof RegExp ||
-               typeof sequence === "string" ||
-               sequence instanceof Function;
+    // Checks if it is not a list (arrays or array-like objects). 
+    var _notList = function (sequence) {
+        return typeof string == "string" || sequence && sequence.length !== undefined;
     };
 
     // Works with _reduce to simplify sequences of constraints.
     var _toFunc = function (sequence) {
-        if (_notSequence(sequence)) return _getFunc(sequence);
+        if (_notList(sequence)) return _getFunc(sequence);
 
         var newSequence = [];
 
@@ -228,7 +224,7 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
         // item equals obj. If obj is a Number, it will return whether the index of the currently 
         // selected item equals obj.
         selected: function (obj) {
-            if (typeof obj === "string") {
+            if (typeof obj == "string") {
                 return function (e) {
                     return e.options[e.selectedIndex].value === obj;
                 };
@@ -241,10 +237,31 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
             throw ("Object type not supported.");
         },
 
+        // Enabled: Whether this element is enabled.
+        enabled: function () {
+            return function (e) {
+                return e.disabled == false && e.type !== "hidden";
+            };
+        },
+
+        // Require: If the element with the given name passed the given constraint (defaults to "required" if constraint not given).
+        require: function (elementName, constraint) {
+            constraint = _toFunc(constraint || "required");
+            return function (e) {
+                return constraint(this.getForm()[elementName]);
+            };
+        },
+
+        // Property equals: Whether the property of the DOMElement equals the given value.
+        propertyEquals: function (property, value) {
+           return function (e) {
+              return value === e[property];
+           };
+        },
+
         // Contains: Whether the text is found inside the element's value. Use the boolean caseSensitive
         // flag to specify case sensitivy.
         contains: function (text, caseSensitive) {
-            if (text === undefined) throw ("No search text provided.");
             return _regexToFunction(new RegExp(text, caseSensitive ? "" : "i"));
         },
 
@@ -304,7 +321,7 @@ GreenLight.core.validator = function (GreenLight, undefined) {
         // Helper function to merge options with default settings.
         var _merge = function (options, defaults) {
             var newObj = {};
-            for (var key in defaults) {
+            for (var key in defaults) if (defaults.hasOwnProperty(key)) {
                 newObj[key] = defaultValue(options[key], defaults[key]);
             }
             return newObj;
@@ -320,7 +337,7 @@ GreenLight.core.validator = function (GreenLight, undefined) {
             if (GreenLight.instance.isReady() && !_EVENTS_ATTACHED) {
                 GreenLight.utils.events.addEvent(_form, "submit", _defaultSubmitHandler);
 
-                for (var element in _elements) {
+                for (var element in _elements) if (_elements.hasOwnProperty(element)) {
                     _addInputEventHandler(element);
                 }
 
@@ -394,7 +411,7 @@ GreenLight.core.validator = function (GreenLight, undefined) {
 
             // Used to register multiple inputs at once to avoid multiple calls to registerInput.
             register: function (inputs) {
-                for (var name in inputs) this.registerInput(name, inputs[name])
+                for (var name in inputs) if (inputs.hasOwnProperty(name)) this.registerInput(name, inputs[name])
             },
 
             // Will add a form element to this object's validation list.
@@ -425,9 +442,9 @@ GreenLight.core.validator = function (GreenLight, undefined) {
 
             // Sets the translations map to obj.
             setTranslations: function (obj) {
-                for (var locale in obj) {
+                for (var locale in obj) if (obj.hasOwnProperty(locale)) {
                     if (!(locale in _i18n)) _i18n[locale] = {};
-                    for (var name in obj[locale]) {
+                    for (var name in obj[locale]) if (obj[locale].hasOwnProperty(name)) {
                         _i18n[locale][name] = obj[locale][name];
                     }
                 }
@@ -512,7 +529,7 @@ GreenLight.core.validator = function (GreenLight, undefined) {
                     }
                     // validate all elements
                 } else {
-                    for (var name in _elements) {
+                    for (var name in _elements) if (_elements.hasOwnProperty(name)) {
                         results.push(this.validate(name, doCallback));
                     }
                 };
