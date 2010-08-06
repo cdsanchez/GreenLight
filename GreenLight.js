@@ -21,8 +21,9 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
                 ['email', /^([^@\s]+)@((?:[-a-z0-9]+\.)+[a-z]{2,})$/i],
                 ['checked', function (e) { return e.checked; } ],
                 ['empty', function (e) { return e.value === ""; } ],
-                ['required', function (e) { return e.value !== "" || e.checked == true; } ]
-            ]);
+                ['required', function (e) { return e.value !== "" || e.checked == true; } ],
+                ['enabled', function (e) { return e.disabled !== false && e.type != "hidden"; } ]
+        ]);
 
         // Attach an event to the window load event to let us know once the window and its components
         // have loaded.
@@ -89,19 +90,19 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
         return typeof string == "string" || sequence && sequence.length !== undefined;
     };
 
-    // Works with _reduce to simplify sequences of constraints.
-    var _toFunc = function (sequence) {
-        if (_notList(sequence)) return _getFunc(sequence);
+    // Works with _reduce to simplify lists of constraints.
+    var _toFunc = function (list) {
+        if (_notList(list)) return _getFunc(list);
 
-        var newSequence = [];
+        var newList = [];
 
-        for (var i = 0, length = sequence.length; i < length; i++) {
-            var result = null, constraint = sequence[i];
+        for (var i = 0, length = list.length; i < length; i++) {
+            var result = null, constraint = list[i];
             result = _getFunc(constraint);
-            result && newSequence.push(result);
+            result && newList.push(result);
         }
 
-        return _and(newSequence);
+        return _and(newList);
     };
 
     // Adds a rule.
@@ -237,13 +238,6 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
             throw ("Object type not supported.");
         },
 
-        // Enabled: Whether this element is enabled.
-        enabled: function () {
-            return function (e) {
-                return e.disabled == false && e.type !== "hidden";
-            };
-        },
-
         // Require: If the element with the given name passed the given constraint (defaults to "required" if constraint not given).
         require: function (elementName, constraint) {
             constraint = _toFunc(constraint || "required");
@@ -254,9 +248,9 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
 
         // Property equals: Whether the property of the DOMElement equals the given value.
         propertyEquals: function (property, value) {
-           return function (e) {
-              return value === e[property];
-           };
+            return function (e) {
+                return value === e[property];
+            };
         },
 
         // Contains: Whether the text is found inside the element's value. Use the boolean caseSensitive
