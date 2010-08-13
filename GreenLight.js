@@ -34,7 +34,7 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
 
     // Convert regular expression to a function equivalent of calling the test method on an element's value.
     var _regexToFunction = function (regex) {
-        var regexp = regex || /^.*$/;
+        regex = regex || /^.*$/; // If regex not given, accept everything.
         return function (element) {
             if (element.value === undefined) return function () { };
             return regexp.test(element.value);
@@ -43,30 +43,27 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
 
     // Convert some arbitrary type to a function we can use, if possible.
     var _getFunc = function (x) {
-        if (x instanceof Function) return x;
+        if (x instanceof Function) return x; // Already a function
         if (x instanceof RegExp) return _regexToFunction(x);
-
-        if (typeof x === "string") {
+        if (x instanceof Array) return _toFunc(x);
+        
+        if (typeof x == "string") {
             var rule = _rules[x];
             if (!rule) {
                 throw "Constraint '" + x + "' not found.";
             }
             return rule.constraint;
         }
-
+        
         return;
     };
 
-    // Simplifies a sequence of functions into a single functions, from left to right. Joined using AND.
+    // Simplifies a sequence of functions into a single functions, from left to right. 
     var _reduce = function (sequence, fn) {
-        if (sequence.length === undefined) return;
-
-        var result = sequence.length !== 0 ?
-            _toFunc(sequence[0]) :
-            function () { return true; };
+        var result = _toFunc(sequence[0]);
 
         for (var i = 0; i < sequence.length - 1; i++) {
-            result = _makeFunc(result, _getFunc(sequence[i + 1]), fn);
+            result = _makeFunc(result, _toFunc(sequence[i + 1]), fn);
         }
 
         return result;
@@ -87,18 +84,18 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
 
     // Checks if it is not a list (arrays or array-like objects). 
     var _notList = function (sequence) {
-        return typeof string == "string" || sequence && sequence.length !== undefined;
+        return sequence.length == undefined || 
+               typeof sequence == "string" || 
+               typeof sequence == "function"; // String and Functions both have length properties
     };
 
     // Works with _reduce to simplify lists of constraints.
-    var _toFunc = function (list) {
+    var _toFunc = function (list, name) {
         if (_notList(list)) return _getFunc(list);
-
-        var newList = [];
-
+        
+        var newList = [], result;
         for (var i = 0, length = list.length; i < length; i++) {
-            var result = null, constraint = list[i];
-            result = _getFunc(constraint);
+            result = _getFunc(list[i]);
             result && newList.push(result);
         }
 
@@ -119,7 +116,6 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
             _addRule(arr[i][0], arr[i][1]);
         }
     };
-
 
     _init();
 
@@ -337,11 +333,9 @@ GreenLight.core.validator = function (GreenLight, undefined) {
 
                 _EVENTS_ATTACHED = true;
             } else {
-                var attachFunc = function () {
+                GreenLight.utils.events.addEvent(window, "load", function () {
                     setTimeout(my.attach, 100);
-                };
-
-                GreenLight.utils.events.addEvent(window, "load", attachFunc);
+                });
             }
         };
 
@@ -376,9 +370,7 @@ GreenLight.core.validator = function (GreenLight, undefined) {
         // The default event handler for specific elements. It will validate the element according to the specified constraint.
         var _defaultElementHandler = function (element) {
             return function () {
-                if (_elements[element].validateOnEvent) {
-                    my.validate(element);
-                }
+                _elements[element].validateOnEvent && my.validate(element);
             }
         };
 
@@ -405,7 +397,9 @@ GreenLight.core.validator = function (GreenLight, undefined) {
 
             // Used to register multiple inputs at once to avoid multiple calls to registerInput.
             register: function (inputs) {
-                for (var name in inputs) if (inputs.hasOwnProperty(name)) this.registerInput(name, inputs[name])
+                for (var name in inputs) 
+                    if (inputs.hasOwnProperty(name)) 
+                        this.registerInput(name, inputs[name]);
             },
 
             // Will add a form element to this object's validation list.
@@ -432,14 +426,16 @@ GreenLight.core.validator = function (GreenLight, undefined) {
             // Will set the current locale for messages.
             setLocale: function (locale) {
                 _settings.locale = locale;
+                _i18n[locale] || (_i18n[locale] = {}); 
             },
 
             // Sets the translations map to obj.
-            setTranslations: function (obj) {
-                for (var locale in obj) if (obj.hasOwnProperty(locale)) {
-                    if (!(locale in _i18n)) _i18n[locale] = {};
-                    for (var name in obj[locale]) if (obj[locale].hasOwnProperty(name)) {
-                        _i18n[locale][name] = obj[locale][name];
+            setTranslations: function (translations) {
+                var currentLocale;
+                for (var locale in translations) if (translations.hasOwnProperty(locale)) {
+                    currentLocale = translations[locale];
+                    for (var name in currentLocale) if (currentLocale.hasOwnProperty(name)) {
+                        _i18n[locale][name] = currentLocale[name];
                     }
                 }
             },
@@ -474,7 +470,7 @@ GreenLight.core.validator = function (GreenLight, undefined) {
             // If no arguments are provided, it will validate all elements. Otherwise, this function will
             // validate individual inputs that match the name parameter.
             validate: function (name, execCallback) {
-                if (arguments.length === 0) return this.validateMany();
+                if (arguments.length == 0) return this.validateMany();
                 if (!(name in _elements)) throw ("Form field '" + name + "' not registered.");
 
                 var success = _elements[name].constraint(_form[name]);
@@ -515,14 +511,12 @@ GreenLight.core.validator = function (GreenLight, undefined) {
                 } else if (!options.selector && options.constraint) {
                     nameList = this.querySelector("input", options.constraint);
                 }
-
-                // Validate those only in nameList
-                if (nameList) {
+                    
+                if (nameList) { // Validate those only in nameList
                     for (var i = 0, length = nameList.length; i < length; i++) {
                         results.push(this.validate(nameList[i], doCallback));
-                    }
-                    // validate all elements
-                } else {
+                    } 
+                } else { // validate all elements
                     for (var name in _elements) if (_elements.hasOwnProperty(name)) {
                         results.push(this.validate(name, doCallback));
                     }
