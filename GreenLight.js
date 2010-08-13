@@ -37,7 +37,7 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
         regex = regex || /^.*$/; // If regex not given, accept everything.
         return function (element) {
             if (element.value === undefined) return function () { };
-            return regexp.test(element.value);
+            return regex.test(element.value);
         }
     };
 
@@ -426,17 +426,20 @@ GreenLight.core.validator = function (GreenLight, undefined) {
             // Will set the current locale for messages.
             setLocale: function (locale) {
                 _settings.locale = locale;
-                _i18n[locale] || (_i18n[locale] = {}); 
             },
 
             // Sets the translations map to obj.
             setTranslations: function (translations) {
-                var currentLocale;
+                var currentLocale, storedLocale;
+                
                 for (var locale in translations) if (translations.hasOwnProperty(locale)) {
                     currentLocale = translations[locale];
+                    storedLocale = _i18n[locale] || (_i18n[locale] = {});
+                    
                     for (var name in currentLocale) if (currentLocale.hasOwnProperty(name)) {
-                        _i18n[locale][name] = currentLocale[name];
+                        storedLocale[name] = currentLocale[name];
                     }
+                    
                 }
             },
 
