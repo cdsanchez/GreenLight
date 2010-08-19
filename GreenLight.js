@@ -15,13 +15,16 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
 
     // I try to keep anything that is not a declaration in here. The place to add more default rules.
     var _init = function () {
+    
+        /* Built-in rules that accept or deny based on value should accept epsilon or lambda, i.e. the empty string
+          unless it is an explicit requirement, e.g., for the "required" rule. TODO: Add more rules. */
         _addRules([
                 ['alpha', /^[a-zA-Z]*$/],
                 ['alphanumeric', /^[a-zA-Z0-9_]*$/],
-                ['email', /^([^@\s]+)@((?:[-a-z0-9]+\.)+[a-z]{2,})$/i],
+                ['email', /^(([^@\s]+)@((?:[-a-z0-9]+\.)+[a-z]{2,})){0,1}$/i],
                 ['checked', function (e) { return e.checked; } ],
-                ['empty', function (e) { return e.value === ""; } ],
-                ['required', function (e) { return e.value !== "" || e.checked == true; } ],
+                ['empty', function (e) { return this.value === ""; } ],
+                ['required', function (e) { return this.value !== "" || e.checked == true; } ],
                 ['enabled', function (e) { return e.disabled !== false && e.type != "hidden"; } ]
         ]);
 
@@ -34,10 +37,8 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
 
     // Convert regular expression to a function equivalent of calling the test method on an element's value.
     var _regexToFunction = function (regex) {
-        regex = regex || /^.*$/; // If regex not given, accept everything.
         return function (element) {
-            if (element.value === undefined) return function () { };
-            return regex.test(element.value);
+            return regex.test(this.value);
         }
     };
 
@@ -62,7 +63,7 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
     var _reduce = function (sequence, fn) {
         var result = _toFunc(sequence[0]);
 
-        for (var i = 0; i < sequence.length - 1; i++) {
+        for (var i = 0, length = sequence.length - 1; i < length; i++) {
             result = _makeFunc(result, _toFunc(sequence[i + 1]), fn);
         }
 
@@ -111,10 +112,14 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
     };
 
     // Adds multiple rules.
-    var _addRules = function (arr) {
-        for (var i = 0, length = arr.length; i < length; i++) {
-            _addRule(arr[i][0], arr[i][1]);
+    var _addRules = function (rules) {
+        for (var i = 0, length = rules.length; i < length; i++) {
+            _addRule(rules[i][0], rules[i][1]);
         }
+    };
+    
+    var _join = function (list, str) {
+        return Array.prototype.join.call(list, str);
     };
 
     _init();
@@ -169,6 +174,21 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
             };
         },
 
+        // Accept: Whether the value ends with the given extensions.
+        accept: function () {
+            return _regexToFunction(new RegExp(".+\\.("+_join(arguments, "|")+")$", "i"));
+        },
+        
+        // Starts With: Whether the argument starts with the argument(s)
+        endsWith: function () {
+            return _regexToFunction(new RegExp("("+_join(arguments, "|")+")$", "i"));
+        },
+        
+        // Starts With: Whether the argument starts with the argument(s)
+        startsWith: function () {
+            return _regexToFunction(new RegExp("^("+_join(arguments, "|")+")", "i"));
+        },
+        
         // Implication: Equivalent to logical implication: p -> q, or "if p then q" or likewise 
         // "if not p or q"
         implies: function () {
@@ -181,7 +201,7 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
         // form with the name "name."
         matches: function (name) {
             return function (e) {
-                return this.getForm()[name].value === e.value;
+                return this.getForm()[name].value === this.value;
             };
         },
 
@@ -195,7 +215,7 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
         // Equals: Whether the element value equals the specified value. Try to use strings.
         equals: function (value) {
             return function (e) {
-                return e.value === value;
+                return this.value === value;
             };
         },
 
@@ -203,7 +223,7 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
         lessThan: function (value) {
             if (typeof value !== "number") throw ("Argument must be a Number.");
             return function (e) {
-                var eVal = parseFloat(e.value, 10);
+                var eVal = parseFloat(this.value, 10);
                 return eVal < value;
             };
         },
@@ -212,7 +232,7 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
         greaterThan: function (value) {
             if (typeof value !== "number") throw ("Argument must be a Number.");
             return function (e) {
-                var eVal = parseFloat(e.value, 10);
+                var eVal = parseFloat(this.value, 10);
                 return eVal > value;
             };
         },
@@ -230,8 +250,6 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
                     return e.selectedIndex === obj;
                 }
             }
-
-            throw ("Object type not supported.");
         },
 
         // Require: If the element with the given name passed the given constraint (defaults to "required" if constraint not given).
@@ -260,7 +278,7 @@ GreenLight.core.__init__ = function (GreenLight, undefined) {
         length: function (min, max) {
             if (max === undefined) max = Number.MAX_VALUE;
             return function (e) {
-                return min <= e.value.length && e.value.length <= max;
+                return min <= this.value.length && this.value.length <= max;
             };
         }
     };
@@ -349,18 +367,16 @@ GreenLight.core.validator = function (GreenLight, undefined) {
         // The default form submit handler. It will call the element's onSuccess callback if it passed, and onFail otherwise.
         // An array of results will be provided through this.results inside the callbacks.
         var _defaultSubmitHandler = function (event) {
-            var results = my.validate(), fn;
-            fn = GreenLight.utils.results.success(results) ? _settings.onSuccess : _settings.onFail;
+            var results = my.validate(), callback;
+            callback = GreenLight.utils.results.success(results) ? _settings.onSuccess : _settings.onFail;
 
-            var doSubmit = fn.call({ results: results }, event);
+            var doSubmit = callback.call({ results: results }, event);
 
             if (!doSubmit) {
-                if (event.stopPropagation) {
-                    event.stopPropagation();
+                if (event.preventDefault) {
                     event.preventDefault();
                 } else {
                     event.returnValue = false;
-                    event.cancelBubble = true;
                 }
             }
 
@@ -378,8 +394,8 @@ GreenLight.core.validator = function (GreenLight, undefined) {
         // Adds the event handler for a specific element.
         var _addInputEventHandler = function (element) {
             if (_elements[element].validateOnEvent) {
-                // If the element specific event type isn't defined, we use the event type found in the global settings.
                 var eventTypes = _elements[element].validateOnEventType;
+                
                 if (typeof eventTypes == "string") eventTypes = [eventTypes]; // if it's a single event put it inside an array
                 for (var i = 0; i < eventTypes.length; i++) {
                     GreenLight.utils.events.addEvent(_form[element], eventTypes[i], _defaultElementHandler(element));
@@ -397,9 +413,9 @@ GreenLight.core.validator = function (GreenLight, undefined) {
 
             // Used to register multiple inputs at once to avoid multiple calls to registerInput.
             register: function (inputs) {
-                for (var name in inputs) 
-                    if (inputs.hasOwnProperty(name)) 
+                for (var name in inputs) if (inputs.hasOwnProperty(name)) {
                         this.registerInput(name, inputs[name]);
+                }
             },
 
             // Will add a form element to this object's validation list.
@@ -415,17 +431,18 @@ GreenLight.core.validator = function (GreenLight, undefined) {
                     onSuccess: undefined,
                     onFail: undefined
                 });
-
-                _i18n[_default_locale][name] = settings.errorMessage;
-
+                
+                _elements[name].filter = GreenLight.filters(settings.filter);
                 _elements[name].constraint = GreenLight.instance.toFunction(settings.constraint);
-
+                _i18n[_default_locale][name] = settings.errorMessage;
+                
                 _attachElementHandler(name);
             },
 
             // Will set the current locale for messages.
             setLocale: function (locale) {
                 _settings.locale = locale;
+                _i18n[locale] || (_i18n[locale] = {});
             },
 
             // Sets the translations map to obj.
@@ -451,14 +468,14 @@ GreenLight.core.validator = function (GreenLight, undefined) {
 
             // Will return a list of names that match the selector and (optionally) that pass the given constraint.
             // It will only return the names of elements that have been registered in the form validator.
-            querySelector: function (selector, constraint) {
-                var nameList = [], nodeList, constraintFunc;
+            query: function (selector, constraint) {
+                var nameList = [], nodeList, constraintFunc, name;
                 constraint && (constraintFunc = GreenLight.instance.toFunction(constraint));
 
                 nodeList = GreenLight.selector.querySelectorAll(selector, _form);
 
                 for (var i = 0; i < nodeList.length; i++) {
-                    var name = nodeList[i].name;
+                    name = nodeList[i].name;
                     name in _elements &&
                             (constraint ?
                                 constraintFunc(_form[name]) &&
@@ -476,6 +493,8 @@ GreenLight.core.validator = function (GreenLight, undefined) {
                 if (arguments.length == 0) return this.validateMany();
                 if (!(name in _elements)) throw ("Form field '" + name + "' not registered.");
 
+                // Update the filtered value
+                _elements[name].value = _elements[name].filter(_form[name].value);
                 var success = _elements[name].constraint(_form[name]);
 
                 // context will be bound to 'this' in the success/fail callback.
@@ -484,7 +503,7 @@ GreenLight.core.validator = function (GreenLight, undefined) {
                     success: success,
                     element: _form[name],
                     errorMessage: _i18n[_settings.locale][name] || _i18n[_default_locale][name]
-                }
+                };
 
                 if (defaultValue(execCallback, _settings.callbackOnValidate)) {
                     var callback;
@@ -510,9 +529,9 @@ GreenLight.core.validator = function (GreenLight, undefined) {
 
                 // Add any elements that match the selector to nameList.
                 if (options.selector) {
-                    nameList = this.querySelector(options.selector, options.constraint);
+                    nameList = this.query(options.selector, options.constraint);
                 } else if (!options.selector && options.constraint) {
-                    nameList = this.querySelector("input", options.constraint);
+                    nameList = this.query("input", options.constraint);
                 }
                     
                 if (nameList) { // Validate those only in nameList
