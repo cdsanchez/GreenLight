@@ -55,7 +55,7 @@ GreenLight.__init__ = function (GreenLight, undefined) {
             return rule.constraint;
         }
         
-        return;
+        throw("Invalid rule type: " + x);
     };
 
     // Simplifies a sequence of functions into a single functions, from left to right. 
@@ -120,7 +120,12 @@ GreenLight.__init__ = function (GreenLight, undefined) {
     var _join = function (list, str) {
         return Array.prototype.join.call(list, str);
     };
-
+    
+    // http://simonwillison.net/2006/jan/20/escape/
+    var _escapeMetaChars = function(text) {
+        return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+    };
+    
     _init();
 
     return {
@@ -179,13 +184,13 @@ GreenLight.__init__ = function (GreenLight, undefined) {
         },
         
         // Starts With: Whether the argument starts with the argument(s)
-        endsWith: function () {
-            return _regexToFunction(new RegExp("("+_join(arguments, "|")+")$", "i"));
+        endsWith: function (text) {
+            return _regexToFunction(new RegExp(_escapeMetaChars(text)+"$", "i"));
         },
         
         // Starts With: Whether the argument starts with the argument(s)
-        startsWith: function () {
-            return _regexToFunction(new RegExp("^("+_join(arguments, "|")+")", "i"));
+        startsWith: function (text) {
+            return _regexToFunction(new RegExp("^"+_escapeMetaChars(text), "i"));
         },
         
         // Implication: Equivalent to logical implication: p -> q, or "if p then q" or likewise 
@@ -269,7 +274,7 @@ GreenLight.__init__ = function (GreenLight, undefined) {
         // Contains: Whether the text is found inside the element's value. Use the boolean caseSensitive
         // flag to specify case sensitivy.
         contains: function (text, caseSensitive) {
-            return _regexToFunction(new RegExp(text, caseSensitive ? "" : "i"));
+            return _regexToFunction(new RegExp(_escapeMetaChars(text), caseSensitive ? "" : "i"));
         },
 
         // Length: Whether or not the element value's length is within the range. From min, up to and 

@@ -32,7 +32,7 @@ GreenLight.validator = function (GreenLight, undefined) {
 
             if (GreenLight.instance.isReady()) _getFormNode();
             else GreenLight.utils.events.addEvent(window, "load", _getFormNode);
-            if (_settings.attachOnLoad) GreenLight.utils.events.addEvent(window, "load", function () { setTimeout(my.attach, 100); });
+            if (_settings.attachOnLoad) GreenLight.utils.events.addEvent(window, "load", function () { setTimeout(self.attach, 100); });
         };
 
         // If option is undefined, return defaultVal, otherwise return option.
@@ -66,7 +66,7 @@ GreenLight.validator = function (GreenLight, undefined) {
                 _EVENTS_ATTACHED = true;
             } else {
                 GreenLight.utils.events.addEvent(window, "load", function () {
-                    setTimeout(my.attach, 100);
+                    setTimeout(self.attach, 100);
                 });
             }
         };
@@ -81,7 +81,7 @@ GreenLight.validator = function (GreenLight, undefined) {
         // The default form submit handler. It will call the element's onSuccess callback if it passed, and onFail otherwise.
         // An array of results will be provided through this.results inside the callbacks.
         var _defaultSubmitHandler = function (event) {
-            var results = my.validate(), callback;
+            var results = self.validate(), callback;
             callback = GreenLight.utils.results.success(results) ? _settings.onSuccess : _settings.onFail;
 
             var doSubmit = callback.call({ results: results }, event);
@@ -100,8 +100,8 @@ GreenLight.validator = function (GreenLight, undefined) {
         // The default event handler for specific elements. It will validate the element according to the specified constraint.
         var _defaultElementHandler = function (element) {
             return function () {
-                _elements[element].validateOnEvent && my.validate(element);
-            }
+                _elements[element].validateOnEvent && self.validate(element);
+            };
         };
 
 
@@ -118,7 +118,7 @@ GreenLight.validator = function (GreenLight, undefined) {
         };
 
         // public methods
-        var my = {
+        var self = {
             // Attach event handlers
             attach: function () {
                 _ATTACH_CALLED = true;
@@ -238,8 +238,8 @@ GreenLight.validator = function (GreenLight, undefined) {
             // TODO: This is getting kind of big, consider splitting it up into multiple functions.
             validateMany: function (options) {
                 options = options || {};
-                var doCallback = defaultValue(options.doCallback, _settings.callbackOnMassValidate);
-                var nameList, results = [];
+                var doCallback = defaultValue(options.doCallback, _settings.callbackOnMassValidate),
+                    nameList, results = [];
 
                 // Add any elements that match the selector to nameList.
                 if (options.selector) {
@@ -263,6 +263,6 @@ GreenLight.validator = function (GreenLight, undefined) {
         }
 
         init();
-        return my;
+        return self;
     };
 };
