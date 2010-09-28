@@ -2,7 +2,7 @@ var GreenLight = GreenLight || {};
 
 GreenLight.selector = GreenLight.selector || {
     querySelectorAll: (function () {
-        if (node.querySelectorAll) {
+        if (document.querySelectorAll) {
             return function (selector, node) { 
                 return node.querySelectorAll(selector); 
             };
@@ -17,7 +17,7 @@ GreenLight.selector = GreenLight.selector || {
 
     matchesSelector: (function () {
         // Check for native implementations.
-        var matchesSelector = node.matchesSelector || node.mozMatchesSelector || node.webkitMatchesSelector;
+        var matchesSelector = document.matchesSelector || document.mozMatchesSelector || document.webkitMatchesSelector;
 
         if (matchesSelector) {
             return function (node, selector) { 
