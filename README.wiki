@@ -1,0 +1,591 @@
+= `GreenLight` Object API Documentation =
+
+This page will describe and provide examples for the GreenLight object methods/api.
+
+==Rule Management==
+
+===addRule===
+Description: This method will add a single rule.
+
+Signature: `void addRule (String name, Constraint constraint)`
+
+Parameters:
+||Name||Description||
+||name||The rule name.||
+||constraint||A valid constraint: an array of constraints, a function, the name of an existing rule (string), or a RegExp object.||
+
+Examples:
+{{{
+GreenLight.addRule("zero-through-nine", /[0-9]/);
+}}}
+{{{
+GreenLight.addRule("my0-9", ["zero-through-nine", GreenLight.not("empty")]);
+}}}
+
+Note: Constraints surrounded by brackets are equivalent to the same constraints wrapped by `GreenLight.and`, meaning an input must pass *all* constraints to be considered valid.
+===addRules===
+Description: This method can be used to add many rules.
+
+Signature: `void addRules(Array<Array<String,Constraint>> rules)`
+
+Parameters:
+||Name||Description||
+||rules||A two dimensional array consisting of arrays of a name and a constraint.||
+
+Examples:
+{{{
+GreenLight.addRules([
+   ["zero-through-nine", /[0-9]/],
+
+   ["alphanumeric", /[0-9a-zA-Z]+/],
+
+   ["remote-validation", function (element) {
+      // call to imaginary webservice
+      var isValid = fake.webService.validate(element.value);
+      //return the result: true or false.
+      return isValid;
+   }]
+]);
+}}}
+
+==Predicates==
+
+Predicates are used in constraints to add advanced functionality to validation. Many of the logical predicates are variadic, meaning that they accept a variable amount of arguments. This will be denoted by an ellipsis (...) following parameter type. Do not confuse these for constraints wrapped in square brackets, which is a "synonym" for `GreenLight.and`. Also assume constraints are evaluated from left to right.
+
+===and===
+ 
+Description: Joins constraints using the AND operation. All constraints must evaluate to true for the whole to be true.
+
+Signature: `function and(Constraint... constraint)`
+
+Parameters:
+||Name||Description||
+||constraint||A valid constraint: an array of constraints, a function, the name of an existing rule (string), or a RegExp object.||
+
+Example:
+
+{{{
+GreenLight.addRule("firstname", GreenLight.and("alpha", "required"));
+}}}
+Equivalent:
+{{{
+GreenLight.addRule("firstname", ["alpha", "required"]);
+}}}
+
+===or===
+
+Description: Joins constraints using the OR operation. At least one constraint must evaluate to true for the whole to be valid.
+
+Signature: `function or(Constraint... constraint)`
+
+Parameters:
+||Name||Description||
+||constraint||A valid constraint: an array of constraints, a function, the name of an existing rule (string), or a RegExp object.||
+
+Example:
+
+{{{
+GreenLight.addRule("birthday", GreenLight.or("date-format", "another-date-format"));
+}}}
+
+===xor===
+
+Description: Joins constraints using the XOR operation. At most one constraint must evaluate to true for the whole to be valid.
+
+Signature: `function xor(Constraint... constraint)`
+
+Parameters:
+||Name||Description||
+||constraint||A valid constraint: an array of constraints, a function, the name of an existing rule (string), or a RegExp object.||
+
+Example:
+
+{{{
+GreenLight.addRule("birthday", GreenLight.xor("date-format", "another-date-format"));
+}}}
+
+===implies==
+Description: Equivalent to logical implication: p -> q, or "if p then q" or likewise "if not p or q"
+
+
+Signature: `function implies(Constraint p, Constraint... q)`
+
+Parameters:
+||Name||Description||
+||p||A valid constraint: an array of constraints, a function, the name of an existing rule (string), or a RegExp object.||
+||q||A valid constraint: an array of constraints, a function, the name of an existing rule (string), or a RegExp object.||
+
+Example:
+
+{{{
+GreenLight.addRule("birthday", GreenLight.implies(GreenLight.not("empty"), "date-format"));
+}}}
+Translation: *if it is not empty, then it must be a date format (assuming the date-format rule exists).*
+
+===not===
+
+Description: The negation of a constraint.
+
+Signature: `function not(Constraint constraint)`
+
+Parameters:
+||Name||Description||
+||constraint||A valid constraint: an array of constraints, a function, the name of an existing rule (string), or a RegExp object.||
+
+Example:
+
+{{{
+GreenLight.addRule("no-badword", GreenLight.not(GreenLight.contains("eval")));
+}}}
+
+===matches===
+
+Description: Whether the input element value equals the value of another input element of the same form.
+
+Signature: `function matches(String inputName)`
+
+Parameters:
+||Name||Description||
+||inputName||The name of the element to compare against.||
+
+Example:
+
+{{{
+GreenLight.addRule("matches-password1", GreenLight.matches("password1"));
+}}}
+
+===matchesSelector===
+
+Description: Whether the input element matches the given CSS selector.
+
+Signature: `function matchesSelector(String<CSSSelector> selector)`
+
+Parameters:
+||Name||Description||
+||selector||A valid CSS selector to match the element against.||
+
+Example:
+
+{{{
+GreenLight.addRule("not-focused", GreenLight.not(GreenLight.matchesSelector(":focus")));
+}}}
+
+*NOTE*: Selector support will only work if the browser supports the `DOMElement#querySelectorAll` method. If the native implementation was not found it will look for implementations from one of the follow libraries: jQuery, Prototype (Element class), Extjs (DOMQuery module), and Yahoo! UI (YAHOO.util.Selector module). In short, if you would like to provide selector support for browsers that do not yet support the W3C selector specification, please include one of the previously mentioned libraries on your site.
+
+===equals===
+
+Description: Whether the input element value equals the given value.
+
+Signature: `function equals(String value)`
+
+Parameters:
+||Name||Description||
+||value||A string to match against.||
+
+Example:
+
+{{{
+GreenLight.addRule("naive-password-check", GreenLight.equals("hunter2"));
+}}}
+
+
+===lessThan===
+
+Description: Whether the value of the element is less than the given value.
+
+Signature: `function lessThan(Number value)`
+
+Parameters:
+||Name||Description||
+||value||A number.||
+
+Example:
+
+{{{
+GreenLight.addRule("kids-only", GreenLight.lessThan(17));
+}}}
+
+
+===lessThan===
+
+Description: Whether the value of the element is greater than the given value.
+
+Signature: `function greaterThan(Number value)`
+
+Parameters:
+||Name||Description||
+||value||A number.||
+
+Example:
+
+{{{
+GreenLight.addRule("adults-only", GreenLight.greaterThan(17));
+}}}
+
+
+===contains===
+
+Description: Whether the value of the element contains the given string.
+
+Signature: `function contains(String text, (optional) boolean caseSensitive = true)`
+
+Parameters:
+||Name||Description||
+||text||A string to search for||
+||caseSensitive||Whether the substring should match cases with the given string.||
+
+Example:
+
+{{{
+GreenLight.addRule("secret-word", GreenLight.contains("fourty-two"));
+}}}
+
+
+===length===
+
+Description: Whether the value of the element is less than the given value.
+
+Signature: `function length(Number lower, (optional) Number upper)`
+
+Parameters:
+||Name||Description||
+||lower||The least amount of characters the element value must have.||
+||upper||The greatest amount of characters the element value must have.||
+
+Example:
+
+{{{
+GreenLight.addRule("password", GreenLight.length(6, 12)); // a password must be 6-12 characters long.
+}}}
+
+===selected===
+
+Description: Whether the value of the element is less than the given value.
+
+Signatures:
+  * `function selected(Number index)`
+  * `function selected(String value)`
+
+Parameters:
+||Name||Description||
+||index||The index of the currently selected item in a `select` element.||
+||value||The `value` property of the currently selected item in a `select` element.||
+
+Examples:
+
+{{{
+GreenLight.addRule("non-default-option", GreenLight.not(GreenLight.selected(0)));
+}}}
+{{{
+GreenLight.addRule("non-default-option", GreenLight.not(GreenLight.selected("default")));
+}}}
+
+==Tools==
+
+Utility methods.
+
+===isReady===
+Description: Whether or not the script can operate on the DOM safely. This is mostly for internal use.
+
+Signature: `boolean isReady()`
+
+Example:
+{{{
+var isReady = GreenLight.isReady();
+}}}
+
+===utils.results.success===
+Description: A utility to quickly determine whether all result objects (from a form validation) are successful.
+
+Signature: `boolean utils.results.success(Array<Object> results)`
+
+Parameters:
+||Name||Description||
+||results|| An array of result objects obtained from calling the `validate` and `validateMany` methods in the form validator module.||
+
+Example:
+{{{
+var formValidator = GreenLight.create();
+var success = GreenLight.utils.results.success(formValidator.validate());
+}}}
+
+===utils.results.iter===
+Description: Shortcut to iterate over validation result object lists.
+
+Signature: `void utils.results.iter(Array<Object> results, Function<Object> fn)`
+
+Parameters:
+||Name||Description||
+||results|| An array of result objects obtained from calling the `validate` and `validateMany` methods in the form validator module.||
+||fn|| A function that operates on an array item. ||
+
+Example:
+{{{
+var results = formValidator.validate();
+GreenLight.utils.results.iter(results, function(result) {
+   console.log(result.success);
+});
+}}}
+
+===utils.results.errorList===
+Description: Extracts errors from a validation result list as a list of strings.
+
+Signature: `Array<String> utils.results.errorList(Array<Object> results)`
+
+Parameters:
+||Name||Description||
+||results|| An array of result objects obtained from calling the `validate` and `validateMany` methods in the form validator module.||
+
+Example:
+{{{
+var errorList, results = formValidator.validate();
+errorList = GreenLight.utils.results.errorList(results);
+}}}
+
+= `GreenLight` Form Validator Documentation =
+
+
+==Creating an instance.==
+
+The constructor for the form validator can be found in the main `GreenLight` instance as `create`.
+
+Example:
+{{{
+var formValidator = GreenLight.create();
+}}}
+
+This constructor accepts many options by passing a javascript `Object` as the parameter.
+
+Example:
+{{{
+var formValidator = GreenLight.create({
+   attachOnLoad: true,
+   validateOnEventType: "blur"
+});
+}}}
+
+===Constructor object parameter options===
+
+||Name||Default Value||Description||
+||attachOnLoad||`true`||Whether the validator should attach itself to the form once the `load` event has been fired by the window (browser) object.||
+||callbackOnMassValidate||`true`||Whether `onFail` or `onSuccess` callbacks should be fired by default when multiple elements are validated (through the `validate` or `validateMany` methods).||
+||callbackOnValidate||`true`||Whether the callback should be executed by default when the `validate(String name)` method is called.||
+||validateOnEvent||`true`||Whether individual input elements should be validated.||
+||validateOnEventType||`"change"`||The event type that will trigger validation for a specific element.||
+||defaultSuccess||`undefined`||The default success callback for elements.||
+||defaultFail||`undefined`||The default failure callback for elements.||
+||locale||`"default"`||The locale the object will use.||
+||onSuccess||function||The function that will be executed if *all* elements pass validation. If you *do not* want the form to submit, you must explicitly return false.||
+||onFail||function||This function that will be executed if one or more elements fail validation when validating *all* elements using the `validate()` method, which is automatically called when the form fires the `submit` event. If you want to stop the form from submitting and events from bubbling, you must explicitly return false. Otherwise, the form data will be sent to the server.||
+
+==Object Methods==
+
+===registerInput===
+Description: Registers an input element into the form validator.
+
+Signature: `void registerInput(String name, Object options)`
+
+Parameters:
+||Name||Description||
+||name||The `name` attribute of the input element that will be registered||
+||options||A javascript object containing several options for this element.||
+
+`options` description:
+
+||Name||Default||Description||
+||constraint||*||The constraint that the element value is restricted to in order to be considered valid.||
+||validateOnEvent||*||This overrides the global option to validate on an event. Set to false if you do not wish this element to be validated after an event.||
+||validateOnEventType||"change"||The event type to use. Use an array to use multiple events.||
+||onSuccess||*||This function will be executed if element validation succeeds.||
+||onFail||*||This function will be executed if element validation fails.||
+||errorMessage||*||This error message will be defined under the `"default"` locale. If you wish to define error messages for other locales, please use the `setTranslations` method. If no message is defined for the current locale this message will be used.||
+
+Examples:
+{{{
+formValidator.registerInput("email", {
+   constraint: GreenLight.and("required", "email"),
+   validateOnEventType: "keyup",
+   errorMessage: "A valid email is required."
+});
+}}}
+Examples:
+{{{
+// Validate on blur and keyup.
+formValidator.registerInput("email", {
+   constraint: GreenLight.and("required", "email"),
+   validateOnEventType: ["keyup", "blur"]
+   errorMessage: "A valid email is required."
+});
+}}}
+
+===register===
+Description: This method can be used to register many elements at once.
+
+Signature: `void register(Object elements)`
+
+Parameters:
+||Name||Description||
+||elements||A javascript object where the keys are element names and the values are the validator options -- any object property from registerInput can be used in these validator options as well.||
+
+Example:
+{{{
+formValidator.register({
+   "email": {
+      constraint: GreenLight.and("required", "email"),
+      validateOnEventType: "keyup",
+      errorMessage: "A valid email is required."
+   },
+   "password2": {
+      constraint: GreenLight.matches("password"),
+      errorMessage: "Must match original password."
+   }
+});
+}}}
+
+===setLocale===
+Description: Sets the current local for error messages.
+
+Signature: `void setLocale(String locale)`
+
+Parameters:
+||Name||Description||
+||locale||The name of the locale to use. For example, "en" for English, "de" for German, etc..||
+
+Example:
+{{{
+formValidator.setLocale("en");
+}}}
+
+===setTranslations===
+Description: Defines translations for locales.
+
+Signature: `void setTranslations(Object map)`
+
+Parameters:
+||Name||Description||
+||map||A Javascript object that maps locale names to objects that define error messages for input names.||
+
+Example:
+{{{
+formValidator.setTranslations({
+   "en": {
+      "email": "Must be a valid email",
+      "password": "Your password must be 6-12 characters and contain at least one non-alphabet character."
+   }
+});
+}}}
+
+
+===setDefaultCallbacks===
+Description: Sets the default callbacks for elements.
+
+Signature: `void setDefaultCallbacks(Object obj)`
+
+Parameters:
+||Name||Description||
+||obj||A Javascript object with at least one of the following properties: `fail`, which defines the default function that will be called when an element fails validation, and `success` which defines the default function which will be called when an element passes validation.||
+
+Example:
+{{{
+formValidator.setDefaultCallbacks({
+   success: function (element) { element.style.borderColor = "red"; },
+   fail: function (element) { element.style.borderColor = "green"; }
+});
+}}}
+
+
+===querySelector===
+Description: Returns a list of registered input names that pass the given CSS selector, and optionally, the given constraint. If the browser does not support the `DOMElement#querySelectorAll` method and you do not have one of the supported libraries (jQuery, Prototype, ExtJs, YUI) loaded, this will return an empty list.
+
+Signature: `Array<String> querySelector(String cssSelector, (optional) String constraint)`
+
+Parameters:
+||Name||Description||
+||cssSelector||A valid CSS selector used to select (registered) elements.||
+||constraint||A GreenLight constraint used to filter elements.||
+
+Example:
+{{{
+var nonEmptyInputs = formValidator.querySelector("input", GreenLight.not("empty"));
+}}}
+
+
+===validate===
+Description: Validates one or elements. If no parameter is given, it will validate all registered input elements. If a string is given, it will attempt to validate the input element whose name matches the given string.
+
+It will return an object (or an array of these objects) which contains the four following properties:
+
+  * `name`: The name of the element that was validated.
+  * `success`: Whether the element passed validation.
+  * `errorMessage`: The error message associated with this element using the current locale. This message will be included regardless of whether the element passed validation.
+  * `element`: The `DOMElement` which was validated.
+
+Signatures:
+  * `Array<Object> validate()`: _validates all elements_
+  * `Object validate(String name)`: _validates the element with the given name_
+
+Parameters:
+||Name||Description||
+||name||The name of the input element you wish to validate.||
+
+Examples:
+{{{
+var results = formValidator.validate(); //validate all elements
+for (var index in results) {
+   var result = results[index];
+   console.log(result.name + " passed? " + result.success);
+}
+}}}
+
+{{{
+var emailResult = formValidator.validate("email"); // validate the "email" field
+console.log("Email passed? "+emailResult.success);
+}}}
+
+===validateMany===
+Description: Can be used to validate many elements.
+
+It will return an array of objects, in which each object contains the four following properties:
+
+  * `name`: The name of the element that was validated.
+  * `success`: Whether the element passed validation.
+  * `errorMessage`: The error message associated with this element using the current locale. This message will be included regardless of whether the element passed validation.
+  * `element`: The `DOMElement` which was validated.
+
+Signatures:
+  * `Array<Object> validatMany()`: _validates all elements_
+  * `Array<Object> validateMany(Object options)`: _validates elements according to the options given_
+
+Parameters:
+||Name||Description||
+||options||A Javascript object which defines options for selecting which elements to validate.||
+
+`options` options:
+||Name||Default||Description||
+||doCallback||_global setting_||Whether to execute success/fail element callbacks when validating.||
+||selector||`undefined`||A css selector to filter the elements to validate.||
+||constraint||`undefined`||A constraint elements must pass in order to be validated.||
+
+Examples:
+{{{
+var results = formValidator.validateMany(); //validate all elements
+for (var index in results) {
+   var result = results[index];
+   console.log(result.name + " passed? " + result.success);
+}
+}}}
+
+{{{
+var results = formValidator.validateMany({
+   selector: "input",
+   constraint: GreenLight.not("empty")
+}); // validate only those which match the selector and constraint
+
+for (var index in results) {
+   var result = results[index];
+   console.log(result.name + " passed? " + result.success);
+}
+}}}
+
+
+
