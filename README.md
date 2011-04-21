@@ -7,6 +7,7 @@ I imported this repository from Google Code. My documentation was in the Google 
 You can find some of the documentation [here](http://code.google.com/p/greenlight/w/list).
 
 Here are a few reasons why would would want to use this library:
+
 - A simple and flexible library for validating your forms.
 - Has no dependencies on other libraries.
 - Relatively small when minified and gzipped.
